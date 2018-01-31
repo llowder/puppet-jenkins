@@ -1,10 +1,9 @@
-require 'puppet_x/jenkins/util'
-require 'puppet_x/jenkins/provider/cli'
+require File.join(File.dirname(__FILE__), '../../..', 'puppet/x/jenkins/util')
+require File.join(File.dirname(__FILE__), '../../..', 'puppet/x/jenkins/provider/cli')
 
 require 'json'
 
-Puppet::Type.type(:jenkins_user).provide(:cli, :parent => PuppetX::Jenkins::Provider::Cli) do
-
+Puppet::Type.type(:jenkins_user).provide(:cli, parent: Puppet::X::Jenkins::Provider::Cli) do
   mk_resource_methods
 
   def self.instances(catalog = nil)
@@ -38,17 +37,17 @@ Puppet::Type.type(:jenkins_user).provide(:cli, :parent => PuppetX::Jenkins::Prov
 
   def self.from_hash(info)
     # map nil -> :undef
-    info = PuppetX::Jenkins::Util.undefize(info)
+    info = Puppet::X::Jenkins::Util.undefize(info)
 
     new({
-      :name             => info['id'],
-      :ensure           => :present,
-      :full_name        => info['full_name'],
-      :email_address    => info['email_address'],
-      :api_token_plain  => info['api_token_plain'],
-      :api_token_public => info['api_token_public'],
-      :public_keys      => info['public_keys'],
-      :password         => info['password'],
+      name: info['id'],
+      ensure: :present,
+      full_name: info['full_name'],
+      email_address: info['email_address'],
+      api_token_plain: info['api_token_plain'],
+      api_token_public: info['api_token_public'],
+      public_keys: info['public_keys'],
+      password: info['password'],
     })
   end
   private_class_method :from_hash
@@ -68,14 +67,14 @@ Puppet::Type.type(:jenkins_user).provide(:cli, :parent => PuppetX::Jenkins::Prov
     end
 
     # map :undef -> nil
-    PuppetX::Jenkins::Util.unundef(info)
+    Puppet::X::Jenkins::Util.unundef(info)
   end
 
   # array of hashes for multiple users
   def self.user_info_all(catalog = nil)
     raw = nil
     unless catalog.nil?
-      raw = clihelper(['user_info_all'], :catalog => catalog)
+      raw = clihelper(['user_info_all'], catalog: catalog)
     else
       raw = clihelper(['user_info_all'])
     end
@@ -91,7 +90,7 @@ Puppet::Type.type(:jenkins_user).provide(:cli, :parent => PuppetX::Jenkins::Prov
   def user_update
     input ||= to_hash
 
-    clihelper(['user_update'], :stdinjson => input)
+    clihelper(['user_update'], stdinjson: input)
   end
 
   def delete_user

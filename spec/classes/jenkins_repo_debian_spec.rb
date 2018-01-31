@@ -1,13 +1,17 @@
 require 'spec_helper'
 
-describe 'jenkins', :type => :module do
+describe 'jenkins', type: :class do
   # Switching OS Family to prevent duplicate declaration
   let(:facts) do
     {
-      :osfamily => 'Debian',
-      :lsbdistcodename => 'precise',
-      :lsbdistid => 'ubuntu',
-      :operatingsystem => 'Debian'
+      osfamily: 'Debian',
+      lsbdistcodename: 'precise',
+      lsbdistid: 'ubuntu',
+      operatingsystem: 'Debian',
+      os: {
+        name: 'Debian',
+        release: { full: '11.04' },
+      },
     }
   end
 
@@ -18,19 +22,19 @@ describe 'jenkins', :type => :module do
 
     describe 'default' do
       it_behaves_like 'an apt catalog'
-      it { should contain_apt__source('jenkins').with_location('http://pkg.jenkins-ci.org/debian-stable') }
+      it { should contain_apt__source('jenkins').with_location('https://pkg.jenkins.io/debian-stable') }
     end
 
     describe 'lts = true' do
-      let(:params) { { :lts => true } }
+      let(:params) { { lts: true } }
       it_behaves_like 'an apt catalog'
-      it { should contain_apt__source('jenkins').with_location('http://pkg.jenkins-ci.org/debian-stable') }
+      it { should contain_apt__source('jenkins').with_location('https://pkg.jenkins.io/debian-stable') }
     end
 
     describe 'lts = false' do
-      let(:params) { { :lts => false } }
+      let(:params) { { lts: false } }
       it_behaves_like 'an apt catalog'
-      it { should contain_apt__source('jenkins').with_location('http://pkg.jenkins-ci.org/debian') }
+      it { should contain_apt__source('jenkins').with_location('https://pkg.jenkins.io/debian') }
     end
   end
 end

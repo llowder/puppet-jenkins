@@ -24,16 +24,16 @@ RSpec.configure do |c|
   c.before :suite do
     # Install module and dependencies
     hosts.each do |host|
-      copy_module_to(host, :source => proj_root, :module_name => 'jenkins')
+      copy_module_to(host, source: proj_root, module_name: 'jenkins')
 
-      on host, puppet('module install puppetlabs-stdlib'), { :acceptable_exit_codes => [0] }
-      on host, puppet('module install puppetlabs-java'), { :acceptable_exit_codes => [0] }
-      on host, puppet('module install puppetlabs-apt'), { :acceptable_exit_codes => [0] }
+      on host, puppet('module install puppetlabs-stdlib'), { acceptable_exit_codes: [0] }
+      on host, puppet('module install puppetlabs-java'), { acceptable_exit_codes: [0] }
+      on host, puppet('module install puppetlabs-apt'), { acceptable_exit_codes: [0] }
 
-      on host, puppet('module install darin-zypprepo'), { :acceptable_exit_codes => [0] }
-      on host, puppet('module install puppet-archive'), { :acceptable_exit_codes => [0] }
-      on host, puppet('module install camptocamp-systemd'), { :acceptable_exit_codes => [0] }
-      on host, puppet('module install puppetlabs-transition'), { :acceptable_exit_codes => [0] }
+      on host, puppet('module install puppet-zypprepo'), { acceptable_exit_codes: [0] }
+      on host, puppet('module install puppet-archive'), { acceptable_exit_codes: [0] }
+      on host, puppet('module install camptocamp-systemd'), { acceptable_exit_codes: [0] }
+      on host, puppet('module install puppetlabs-transition'), { acceptable_exit_codes: [0] }
     end
   end
 end
@@ -45,23 +45,30 @@ shared_context 'jenkins' do
               '/usr/lib/jenkins'
             when 'Debian'
               '/usr/share/jenkins'
+            when 'Archlinux'
+              '/usr/share/java/jenkins/'
             end
   $sysconfdir = case fact 'osfamily'
                 when 'RedHat'
                   '/etc/sysconfig'
                 when 'Debian'
                   '/etc/default'
+                when 'Archlinux'
+                  '/etc/conf.d'
                 end
 
   let(:libdir) { $libdir }
 
   let(:base_manifest) do
     <<-EOS
-      include ::jenkins
+      class { '::jenkins':
+        cli_remoting_free => true,
+      }
 
       class { '::jenkins::cli::config':
-        cli_jar       => '#{libdir}/jenkins-cli.jar',
-        puppet_helper => '#{libdir}/puppet_helper.groovy',
+        cli_jar           => '#{libdir}/jenkins-cli.jar',
+        puppet_helper     => '#{libdir}/puppet_helper.groovy',
+        cli_remoting_free => true,
       }
     EOS
   end
@@ -77,8 +84,8 @@ end
 
 # Run it twice and test for idempotency
 def apply2(pp)
-  apply(pp, :catch_failures => true)
-  apply(pp, :catch_changes => true)
+  apply(pp, catch_failures: true)
+  apply(pp, catch_changes: true)
 end
 
 # probe stolen from:

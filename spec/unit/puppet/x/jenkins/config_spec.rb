@@ -1,15 +1,15 @@
 require 'spec_helper'
 
-require 'puppet_x/jenkins/config'
+require 'puppet/x/jenkins/config'
 
-describe PuppetX::Jenkins::Config do
+describe Puppet::X::Jenkins::Config do
   DEFAULTS = {
-    :cli_jar         => '/usr/lib/jenkins/jenkins-cli.jar',
-    :url             => 'http://localhost:8080',
-    :ssh_private_key => nil,
-    :puppet_helper   => '/usr/lib/jenkins/puppet_helper.groovy',
-    :cli_tries       => 30,
-    :cli_try_sleep   => 2,
+    cli_jar: '/usr/lib/jenkins/jenkins-cli.jar',
+    url: 'http://localhost:8080',
+    ssh_private_key: nil,
+    puppet_helper: '/usr/lib/jenkins/puppet_helper.groovy',
+    cli_tries: 30,
+    cli_try_sleep: 2,
   }
 
   shared_context 'facts' do
@@ -54,14 +54,14 @@ describe PuppetX::Jenkins::Config do
   # we are relying on a side effect of this method being to test features /
   # load libs
   describe '#initialize' do
-    it { expect(described_class.new).to be_kind_of PuppetX::Jenkins::Config }
+    it { expect(described_class.new).to be_kind_of Puppet::X::Jenkins::Config }
   end
 
   describe '#[]' do
     context 'unknown config key' do
       it do
         expect{described_class.new[:foo]}
-          .to raise_error(PuppetX::Jenkins::Config::UnknownConfig)
+          .to raise_error(Puppet::X::Jenkins::Config::UnknownConfig)
       end
     end # unknown config key
 
@@ -99,7 +99,7 @@ describe PuppetX::Jenkins::Config do
         context 'with no params' do
           before do
             jenkins = Puppet::Type.type(:component).new(
-              :name => 'jenkins::cli::config',
+              name: 'jenkins::cli::config',
             )
 
             catalog.add_resource jenkins
@@ -119,13 +119,13 @@ describe PuppetX::Jenkins::Config do
         context 'with all params' do
           before do
             jenkins = Puppet::Type.type(:component).new(
-              :name            => 'jenkins::cli::config',
-              :cli_jar         => 'cat.jar',
-              :url             => 'http://localhost:111',
-              :ssh_private_key => 'cat.id_rsa',
-              :puppet_helper   => 'cat.groovy',
-              :cli_tries       => 222,
-              :cli_try_sleep   => 333,
+              name: 'jenkins::cli::config',
+              cli_jar: 'cat.jar',
+              url: 'http://localhost:111',
+              ssh_private_key: 'cat.id_rsa',
+              puppet_helper: 'cat.groovy',
+              cli_tries: 222,
+              cli_try_sleep: 333,
             )
 
             catalog.add_resource jenkins

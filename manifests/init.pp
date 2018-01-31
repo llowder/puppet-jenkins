@@ -28,8 +28,8 @@
 #   configure upstream jenkins package repos
 #
 #   ``false`` means do NOT configure the upstream jenkins package repo. This
-#   means you'll manage a repo manually outside this module.  This is for folks
-#   that use a custom repo, or the like.
+#   means you'll manage a repo manually outside this module. This can also be
+#   your distribution's repo.
 #
 # @param package_name
 #   Optionally override the package name
@@ -175,9 +175,27 @@
 #   * CLI installation (both implicit and explicit) requires the ``unzip``
 #   command
 #
+# @param cli_remoting_free
+#   Weather to use the new Jenkins CLI introduced in Jenkins 2.54 and Jenkins
+#   2.46.2 LTS and later (see https://issues.jenkins-ci.org/browse/JENKINS-41745)
+#   Can be true, false or undef. When undef, then heuristics will be used based
+#   on $repo, $lts and $version.
+#
 # @param cli_ssh_keyfile
 #   Provides the location of an ssh private key file to make authenticated
 #   connections to the Jenkins CLI.
+#
+# @param cli_username
+#   Provides the username for authenticating to Jenkins via username and
+#   password.
+#
+# @param cli_password
+#   Provides the password for authenticating to Jenkins via username and
+#   password. Needed if cli_username is specified.
+#
+# @param cli_password_file
+#   Provides the password file for authenticating to Jenkins via username and
+#   password. Needed if cli_username is specified and cli_password is undefined.
 #
 # @param cli_tries
 #   Retries until giving up talking to jenkins API
@@ -191,6 +209,7 @@
 #   Note that this value is used for CLI communication and firewall
 #   configuration.  It does not configure the port on which the jenkins service
 #   listens. (see config_hash)
+#
 # @param libdir
 #   Path to jenkins core files
 #
@@ -272,87 +291,128 @@
 #     # /support-core deps
 #
 class jenkins(
-  $version              = $jenkins::params::version,
-  $lts                  = $jenkins::params::lts,
-  $repo                 = $jenkins::params::repo,
-  $package_name         = $jenkins::params::package_name,
-  $direct_download      = $::jenkins::params::direct_download,
-  $package_cache_dir    = $jenkins::params::package_cache_dir,
-  $package_provider     = $jenkins::params::package_provider,
-  $manage_service       = true,
-  $service_enable       = $jenkins::params::service_enable,
-  $service_ensure       = $jenkins::params::service_ensure,
-  $service_provider     = $jenkins::params::service_provider,
-  $config_hash          = {},
-  $plugin_hash          = {},
-  $job_hash             = {},
-  $user_hash            = {},
-  $configure_firewall   = false,
-  $install_java         = $jenkins::params::install_java,
-  $repo_proxy           = undef,
-  $proxy_host           = undef,
-  $proxy_port           = undef,
-  $no_proxy_list        = undef,
-  $cli                  = true,
-  $cli_ssh_keyfile      = undef,
-  $cli_tries            = $jenkins::params::cli_tries,
-  $cli_try_sleep        = $jenkins::params::cli_try_sleep,
-  $port                 = $jenkins::params::port,
-  $libdir               = $jenkins::params::libdir,
-  $sysconfdir           = $jenkins::params::sysconfdir,
-  $manage_datadirs      = $jenkins::params::manage_datadirs,
-  $localstatedir        = $::jenkins::params::localstatedir,
-  $executors            = undef,
-  $slaveagentport       = undef,
-  $manage_user          = $::jenkins::params::manage_user,
-  $user                 = $::jenkins::params::user,
-  $manage_group         = $::jenkins::params::manage_group,
-  $group                = $::jenkins::params::group,
-  $default_plugins      = $::jenkins::params::default_plugins,
-  $default_plugins_host = $::jenkins::params::default_plugins_host,
-  $purge_plugins        = $::jenkins::params::purge_plugins,
+  String $version                                 = $jenkins::params::version,
+  Boolean $lts                                    = $jenkins::params::lts,
+  Boolean $repo                                   = $jenkins::params::repo,
+  String $package_name                            = $jenkins::params::package_name,
+  Optional[String] $direct_download               = $jenkins::params::direct_download,
+  Stdlib::Absolutepath $package_cache_dir         = $jenkins::params::package_cache_dir,
+  Optional[String] $package_provider              = $jenkins::params::package_provider,
+  Boolean $manage_service                         = true,
+  Boolean $service_enable                         = $jenkins::params::service_enable,
+  Enum['running', 'stopped'] $service_ensure      = $jenkins::params::service_ensure,
+  Optional[String] $service_provider              = $jenkins::params::service_provider,
+  Hash $config_hash                               = {},
+  Hash $plugin_hash                               = {},
+  Hash $job_hash                                  = {},
+  Hash $user_hash                                 = {},
+  Boolean $configure_firewall                     = false,
+  Boolean $install_java                           = $jenkins::params::install_java,
+  Optional[String] $repo_proxy                    = undef,
+  Optional[String] $proxy_host                    = undef,
+  Optional[Integer] $proxy_port                   = undef,
+  Optional[Array] $no_proxy_list                  = undef,
+  Boolean $cli                                    = true,
+  Optional[Stdlib::Absolutepath] $cli_ssh_keyfile = undef,
+  Optional[String] $cli_username                  = undef,
+  Optional[String] $cli_password                  = undef,
+  Optional[String] $cli_password_file             = undef,
+  Optional[Boolean] $cli_remoting_free            = undef,
+  Integer $cli_tries                              = $jenkins::params::cli_tries,
+  Integer $cli_try_sleep                          = $jenkins::params::cli_try_sleep,
+  Integer $port                                   = $jenkins::params::port,
+  Stdlib::Absolutepath $libdir                    = $jenkins::params::libdir,
+  Stdlib::Absolutepath $sysconfdir                = $jenkins::params::sysconfdir,
+  Boolean $manage_datadirs                        = $jenkins::params::manage_datadirs,
+  Stdlib::Absolutepath $localstatedir             = $::jenkins::params::localstatedir,
+  Optional[Integer] $executors                    = undef,
+  Optional[Integer] $slaveagentport               = undef,
+  Boolean $manage_user                            = $::jenkins::params::manage_user,
+  String $user                                    = $::jenkins::params::user,
+  Boolean $manage_group                           = $::jenkins::params::manage_group,
+  String $group                                   = $::jenkins::params::group,
+  Array $default_plugins                          = $::jenkins::params::default_plugins,
+  String $default_plugins_host                    = $::jenkins::params::default_plugins_host,
+  Boolean $purge_plugins                          = $::jenkins::params::purge_plugins,
 ) inherits jenkins::params {
 
-  validate_string($version)
-  validate_bool($lts)
-  validate_bool($repo)
-  validate_string($package_name)
-  validate_string($direct_download)
-  validate_absolute_path($package_cache_dir)
-  validate_string($package_provider)
-  validate_bool($manage_service)
-  validate_bool($service_enable)
-  validate_re($service_ensure, '^running$|^stopped$')
-  validate_string($service_provider)
-  validate_hash($config_hash)
-  validate_hash($plugin_hash)
-  validate_hash($job_hash)
-  validate_hash($user_hash)
-  validate_bool($configure_firewall)
-  validate_bool($install_java)
-  validate_string($repo_proxy)
-  validate_string($proxy_host)
-  if $proxy_port { validate_integer($proxy_port) }
-  if $no_proxy_list { validate_array($no_proxy_list) }
-  validate_bool($cli)
-  if $cli_ssh_keyfile { validate_absolute_path($cli_ssh_keyfile) }
-  validate_integer($cli_tries)
-  validate_integer($cli_try_sleep)
-  validate_integer($port)
-  validate_absolute_path($libdir)
-  validate_absolute_path($sysconfdir)
-  validate_bool($manage_datadirs)
-  validate_absolute_path($localstatedir)
-  if $executors { validate_integer($executors) }
-  if $slaveagentport { validate_integer($slaveagentport) }
-  validate_bool($manage_user)
-  validate_string($user)
-  validate_bool($manage_group)
-  validate_string($group)
-  validate_string($default_plugins_host)
-  validate_bool($purge_plugins)
   if $purge_plugins and ! $manage_datadirs {
     warning('jenkins::purge_plugins has no effect unless jenkins::manage_datadirs is true')
+  }
+
+  ## determine if we must use the new CLI
+  if $cli_remoting_free == undef {
+    notice("INFO: Using the automatic detection of new cli mode (See https://issues.jenkins-ci.org/browse/JENKINS-41745), use \$::jenkins::cli_remoting_free=(true|false) to enable or disable explicitly")
+    # Heuristics (default)
+    # We try to "guess" if a new CLI version of jenkins is
+    # in use. If we can be sure, we enable new CLI mode automatically.
+    # If not, we keep the old way and print a hint about
+    # the explicit mode (this is true for custom repo setups,
+    # that do not mirror the Jenkins repo, but release jenkins
+    # versions based on repo stages and not pinning in puppet)
+    if $repo {
+      if $lts {
+        # we use a LTS version, so new cli is included in 2.46.2
+        if $version == 'latest' {
+          $_use_new_cli = true
+        } elsif $version == 'installed' {
+          $_use_new_cli = false
+        } elsif $version =~ /\d+\.\d+/ and versioncmp($version,'2.46.2') >= 0 {
+          $_use_new_cli = true
+        } else {
+          $_use_new_cli = false
+        }
+      } else {
+        # we use a regular version, so new cli is included in 2.54
+        if $version == 'latest' {
+          $_use_new_cli = true
+        } elsif $version == 'installed' {
+          $_use_new_cli = false
+        } elsif $version =~ /\d+\.\d+/ and versioncmp($version,'2.54') >= 0 {
+          $_use_new_cli = true
+        } else {
+          $_use_new_cli = false
+        }
+      }
+    } else {
+      # Repo not managed, so we do not know if it is a LTS or regular version
+      if $version =~ /\d+\.\d+/ and versioncmp($version,'2.54') >= 0 {
+        $_use_new_cli = true
+      } else {
+        $_use_new_cli = false
+      }
+    }
+  } else {
+    $_use_new_cli = str2bool($cli_remoting_free)
+  }
+
+  # Construct the cli auth argument used in cli and cli_helper
+  if $cli_ssh_keyfile {
+    # SSH key auth
+    if $_use_new_cli {
+      if empty($cli_username) {
+        fail('ERROR: Latest remoting free CLI (see https://issues.jenkins-ci.org/browse/JENKINS-41745) needs username for SSH Access (\$::jenkins::cli_username)')
+      }
+      $_cli_auth_arg = "-i '${cli_ssh_keyfile}' -ssh -user '${cli_username}'"
+    } else {
+      $_cli_auth_arg = "-i '${cli_ssh_keyfile}'"
+    }
+  } elsif !empty($cli_username) {
+    # Username / Password auth (needed for AD and other Auth Realms)
+    if $_use_new_cli {
+      if !empty($cli_password) {
+        $_cli_auth_arg = "-auth '${cli_username}:${cli_password}'"
+      } elsif !empty($cli_password_file) {
+        $_cli_auth_arg = "-auth '@${cli_password_file}'"
+      } else {
+        fail('ERROR: Need cli_password or cli_password_file if cli_username is specified')
+      }
+    } else {
+      fail('ERROR: Due to https://issues.jenkins-ci.org/browse/JENKINS-12543 username and password mode are only supported for the non-remoting CLI mode (see https://issues.jenkins-ci.org/browse/JENKINS-41745)')
+    }
+  } else {
+    # default = no auth
+    $_cli_auth_arg = undef
   }
 
   $plugin_dir = "${localstatedir}/plugins"
@@ -387,7 +447,6 @@ class jenkins(
 
   if $manage_service {
     include ::jenkins::service
-    validate_array($default_plugins)
     if empty($default_plugins){
       notice(sprintf('INFO: make sure you install the following plugins with your code using this module: %s',join($::jenkins::params::default_plugins,','))) # lint:ignore:140chars
     }
@@ -412,9 +471,9 @@ class jenkins(
       unless  => "[ \$(\$HELPER_CMD get_num_executors) -eq ${executors} ]",
     }
 
-    Class['jenkins::cli'] ->
-      Jenkins::Cli::Exec['set_num_executors'] ->
-        Class['jenkins::jobs']
+    Class['jenkins::cli']
+      -> Jenkins::Cli::Exec['set_num_executors']
+        -> Class['jenkins::jobs']
   }
 
   if ($slaveagentport != undef) {
@@ -423,39 +482,39 @@ class jenkins(
       unless  => "[ \$(\$HELPER_CMD get_slaveagent_port) -eq ${slaveagentport} ]",
     }
 
-    Class['jenkins::cli'] ->
-      Jenkins::Cli::Exec['set_slaveagent_port'] ->
-        Class['jenkins::jobs']
+    Class['jenkins::cli']
+      -> Jenkins::Cli::Exec['set_slaveagent_port']
+        -> Class['jenkins::jobs']
   }
 
   if $manage_service {
-    Anchor['jenkins::begin'] ->
-      Class[$jenkins_package_class] ->
-        Class['jenkins::config'] ->
-          Class['jenkins::plugins'] ~>
-            Class['jenkins::service'] ->
-              Class['jenkins::jobs'] ->
-                Anchor['jenkins::end']
+    Anchor['jenkins::begin']
+      -> Class[$jenkins_package_class]
+        -> Class['jenkins::config']
+          -> Class['jenkins::plugins']
+            ~> Class['jenkins::service']
+              -> Class['jenkins::jobs']
+                -> Anchor['jenkins::end']
   }
 
   if $install_java {
-    Anchor['jenkins::begin'] ->
-      Class['java'] ->
-        Class[$jenkins_package_class] ->
-          Anchor['jenkins::end']
+    Anchor['jenkins::begin']
+      -> Class['java']
+        -> Class[$jenkins_package_class]
+          -> Anchor['jenkins::end']
   }
 
   if $repo_ {
-    Anchor['jenkins::begin'] ->
-      Class['jenkins::repo'] ->
-        Class['jenkins::package'] ->
-          Anchor['jenkins::end']
+    Anchor['jenkins::begin']
+      -> Class['jenkins::repo']
+        -> Class['jenkins::package']
+          -> Anchor['jenkins::end']
   }
 
   if ($configure_firewall and $manage_service) {
-    Class['jenkins::service'] ->
-      Class['jenkins::firewall'] ->
-        Anchor['jenkins::end']
+    Class['jenkins::service']
+      -> Class['jenkins::firewall']
+        -> Anchor['jenkins::end']
   }
 
   if $service_provider == 'systemd' {
@@ -466,9 +525,9 @@ class jenkins(
 
     # jenkins::config manages the jenkins user resource, which is autorequired
     # by the file resource for the run wrapper.
-    Class['jenkins::config'] ->
-      Jenkins::Systemd['jenkins'] ->
-        Anchor['jenkins::end']
+    Class['jenkins::config']
+      -> Jenkins::Systemd['jenkins']
+        -> Anchor['jenkins::end']
   }
 }
 # vim: ts=2 et sw=2 autoindent

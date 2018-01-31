@@ -39,6 +39,19 @@ namespace :travis do
   end
 end
 
+sh_scripts = %w(
+  templates/jenkins-slave-run.erb
+)
+desc 'Syntax check shellscripts'
+task :shellcheck do
+  sh "shellcheck #{sh_scripts.join(' ')}" do |ok, res|
+    unless ok
+      # exit without verbose rake error message
+      exit res.exitstatus
+    end
+  end
+end
+
 default_tasks = [
   :lint,
   :validate,
@@ -51,9 +64,10 @@ default_tasks = [
 #   wrong number of arguments (5 for 1..3)
 #  ../puppet-jenkins/.bundle/ruby/2.0.0/gems/puppet-3.8.7/lib/puppet/vendor/safe_yaml/lib/safe_yaml.rb:162:in `safe_load'
 
-require 'puppet'
-if not Puppet.version =~ /^3/
-  default_tasks.unshift :rubocop
-end
+# DISABLE RUBOCOP UNTIL VOXPUPULI MIGRATION IS COMPLETE
+# require 'puppet'
+# if not Puppet.version =~ /^3/
+#  default_tasks.unshift :rubocop
+# end
 
 task :default => default_tasks

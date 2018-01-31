@@ -251,11 +251,11 @@ class Actions {
   /////////////////////////
   // create or update user from JSON
   /////////////////////////
-  void user_update() { // or create
+  void user_update(String jsonfile) { // or create
     // parse JSON doc from stdin
     def slurper = new groovy.json.JsonSlurper()
-    def text = bindings.stdin.text
-    def conf = slurper.parseText(text)
+    def conf = slurper.parse(new File(jsonfile))
+
 
     // a user id is required
     def id = conf['id']
@@ -456,7 +456,7 @@ class Actions {
     current_credentials['password'] = credentials.password.plainText
     } else {
       current_credentials['private_key'] = credentials.privateKey
-      current_credentials['passphrase'] = credentials.passphrase.plainText
+      current_credentials['passphrase'] = credentials.passphrase?.plainText
     }
 
     def builder = new groovy.json.JsonBuilder(current_credentials)
@@ -507,10 +507,10 @@ class Actions {
           info['description'] = cred.description
           info['username'] = cred.username
           info['private_key'] = cred.privateKey
-          info['passphrase'] = cred.passphrase.plainText
+          info['passphrase'] = cred.passphrase?.plainText
           break
         case 'com.dabsquared.gitlabjenkins.connection.GitLabApiTokenImpl':
-          info['apiToken'] = cred.apiToken.plainText
+          info['api_token'] = cred.apiToken.plainText
           info['description'] = cred.description
           break
         case 'org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl':
@@ -521,6 +521,11 @@ class Actions {
           info['description'] = cred.description
           info['file_name'] = cred.getFileName()
           info['content'] = IOUtils.toString(cred.getContent(), "UTF-8")
+          break
+        case 'com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsImpl':
+          info['description'] = cred.description
+          info['access_key'] = cred.getAccessKey()
+          info['secret_key'] = cred.getSecretKey().plainText
           break
         case 'com.cloudbees.plugins.credentials.impl.CertificateCredentialsImpl':
           def keyStoreSource = cred.getKeyStoreSource()
@@ -559,13 +564,12 @@ class Actions {
    * modify an existing credentials specified by a JSON document passed via
    * the stdin
   */
-  void credentials_update_json() {
+  void credentials_update_json(String jsonfile) {
     def j = Jenkins.getInstance()
 
     // parse JSON doc from stdin
     def slurper = new groovy.json.JsonSlurper()
-    def text = bindings.stdin.text
-    def conf = slurper.parseText(text)
+    def conf = slurper.parse(new File(jsonfile))
 
     def cred = null
     switch (conf['impl']) {
@@ -608,6 +612,38 @@ class Actions {
           conf['id'],
           conf['description'],
           new Secret(conf['secret'])
+        )
+        break
+      case 'FileCredentialsImpl':
+        util.requirePlugin('plain-credentials')
+
+        cred = this.class.classLoader.loadClass('org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl').newInstance(
+          CredentialsScope."${conf['scope']}",
+          conf['id'],
+          conf['description'],
+          conf['file_name'],
+          SecretBytes.fromBytes(conf['content'].getBytes())
+        )
+        break
+      case 'AWSCredentialsImpl':
+        util.requirePlugin('aws-credentials')
+
+        cred = this.class.classLoader.loadClass('com.cloudbees.jenkins.plugins.awscredentials.AWSCredentialsImpl').newInstance(
+          CredentialsScope."${conf['scope']}",
+          conf['id'],
+          conf['access_key'],
+          conf['secret_key'],
+          conf['description'],
+        )
+        break
+      case 'GitLabApiTokenImpl':
+        util.requirePlugin('gitlab-plugin')
+
+        cred = this.class.classLoader.loadClass('com.dabsquared.gitlabjenkins.connection.GitLabApiTokenImpl').newInstance(
+          CredentialsScope."${conf['scope']}",
+          conf['id'],
+          conf['description'],
+          new Secret(conf['api_token']),
         )
         break
       default:
@@ -844,7 +880,7 @@ class Actions {
   ////////////////////////
   // set_jenkins_instance
   ////////////////////////
-  void set_jenkins_instance() {
+  void set_jenkins_instance(String jsonfile) {
     def j = Jenkins.getInstance()
 
     def setup = { info ->
@@ -864,8 +900,7 @@ class Actions {
 
     // parse JSON doc from stdin
     def slurper = new groovy.json.JsonSlurper()
-    def text = bindings.stdin.text
-    def conf = slurper.parseText(text)
+    def conf = slurper.parse(new File(jsonfile))
 
     // each key in the hash is a method on the Jenkins singleton.  The key's
     // value is an object to instantiate and pass to the method.  (currently,

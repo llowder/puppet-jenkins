@@ -1,6 +1,6 @@
-require 'puppet_x/jenkins/type/cli'
+require_relative  '../../puppet/x/jenkins/type/cli'
 
-PuppetX::Jenkins::Type::Cli.newtype(:jenkins_user) do
+Puppet::X::Jenkins::Type::Cli.newtype(:jenkins_user) do
   @doc = "Manage Jenkins' user account information"
 
   ensurable
@@ -33,11 +33,11 @@ PuppetX::Jenkins::Type::Cli.newtype(:jenkins_user) do
     desc 'Literal public API token.  read-only property.'
   end
 
-  newproperty(:public_keys, :array_matching => :all) do
+  newproperty(:public_keys, array_matching: :all) do
     desc 'Array of ssh public key strings'
   end
 
   newproperty(:password) do
     desc 'Password for HudsonPrivateSecurityRealm'
   end
-end # PuppetX::Jenkins::Type::Cli.newtype
+end # Puppet::X::Jenkins::Type::Cli.newtype

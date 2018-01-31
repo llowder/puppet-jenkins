@@ -4,21 +4,17 @@
 # CLI.
 #
 define jenkins::cli::exec(
-  $command = $title,
-  $unless  = undef,
+  Optional[String] $unless        = undef,
+  Variant[String, Array] $command = $title,
 ) {
-  if !(is_string($command) or is_array($command)) {
-    fail('$command is not a string or an Array.')
-  }
-  validate_string($unless)
 
   include ::jenkins
   include ::jenkins::cli_helper
   include ::jenkins::cli::reload
 
-  Class['jenkins::cli_helper'] ->
-    Jenkins::Cli::Exec[$title] ->
-      Anchor['jenkins::end']
+  Class['jenkins::cli_helper']
+    -> Jenkins::Cli::Exec[$title]
+      -> Anchor['jenkins::end']
 
   # $command may be either a string or an array due to the use of flatten()
   $run = join(
@@ -32,7 +28,7 @@ define jenkins::cli::exec(
   )
 
   if $unless {
-    $environment_run = [ "HELPER_CMD=${::jenkins::cli_helper::helper_cmd}" ]
+    $environment_run = [ "HELPER_CMD=eval ${::jenkins::cli_helper::helper_cmd}" ]
   } else {
     $environment_run = undef
   }

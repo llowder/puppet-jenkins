@@ -2,11 +2,10 @@ require 'puppet/util/warnings'
 
 require 'json'
 
-require 'puppet_x/jenkins/util'
-require 'puppet_x/jenkins/provider/cli'
+require_relative '../../../puppet/x/jenkins/util'
+require File.join(File.dirname(__FILE__), '../../..', 'puppet/x/jenkins/provider/cli')
 
-Puppet::Type.type(:jenkins_credentials).provide(:cli, :parent => PuppetX::Jenkins::Provider::Cli) do
-
+Puppet::Type.type(:jenkins_credentials).provide(:cli, parent: Puppet::X::Jenkins::Provider::Cli) do
   mk_resource_methods
 
   def self.instances(catalog = nil)
@@ -40,11 +39,11 @@ Puppet::Type.type(:jenkins_credentials).provide(:cli, :parent => PuppetX::Jenkin
 
   def self.from_hash(info)
     # map nil -> :undef
-    info = PuppetX::Jenkins::Util.undefize(info)
+    info = Puppet::X::Jenkins::Util.undefize(info)
 
     params = {
-      :name   => info['id'],
-      :ensure => :present,
+      name: info['id'],
+      ensure: :present,
     }
 
     [:impl, :domain, :scope].each {|k| copy_key(params, info, k)}
@@ -60,6 +59,10 @@ Puppet::Type.type(:jenkins_credentials).provide(:cli, :parent => PuppetX::Jenkin
       [:description, :file_name, :content].each {|k| copy_key(params, info, k)}
     when 'CertificateCredentialsImpl'
       [:description, :password, :key_store_implementation].each {|k| copy_key(params, info, k)}
+    when 'AWSCredentialsImpl'
+      [:description, :secret_key, :access_key].each {|k| copy_key(params, info, k)}
+    when 'GitLabApiTokenImpl'
+      [:description, :api_token].each {|k| copy_key(params, info, k)}
     when 'ConduitCredentialsImpl'
       [:description, :token, :url].each {|k| copy_key(params, info, k)}
 
@@ -96,12 +99,12 @@ Puppet::Type.type(:jenkins_credentials).provide(:cli, :parent => PuppetX::Jenkin
     end
 
     # map :undef -> nil
-    PuppetX::Jenkins::Util.unundef(info)
+    Puppet::X::Jenkins::Util.unundef(info)
   end
 
   # array of hashes for multiple "credentials" entries
   def self.credentials_list_json(catalog = nil)
-    raw = clihelper(['credentials_list_json'], :catalog => catalog)
+    raw = clihelper(['credentials_list_json'], catalog: catalog)
 
     begin
       JSON.parse(raw)
@@ -112,7 +115,7 @@ Puppet::Type.type(:jenkins_credentials).provide(:cli, :parent => PuppetX::Jenkin
   private_class_method :credentials_list_json
 
   def credentials_update_json
-    clihelper(['credentials_update_json'], :stdinjson => to_hash)
+    clihelper(['credentials_update_json'], stdinjson: to_hash)
   end
 
   def credentials_delete_id

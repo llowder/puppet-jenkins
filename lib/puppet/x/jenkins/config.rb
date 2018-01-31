@@ -1,21 +1,27 @@
 require 'facter'
 
-require 'puppet_x/jenkins'
+require_relative '../jenkins'
+
 require 'puppet/util/warnings'
 
 # This class is used to lookup common configuration values by first looking for
 # the desired key as parameter to the config class in the catalog, then
 # checking for a prefixed fact, and falling back to hard coded defaults.
-class PuppetX::Jenkins::Config
+class Puppet::X::Jenkins::Config
   class UnknownConfig < ArgumentError; end
 
   DEFAULTS = {
-    :cli_jar         => '/usr/lib/jenkins/jenkins-cli.jar',
-    :url             => 'http://localhost:8080',
-    :ssh_private_key => nil,
-    :puppet_helper   => '/usr/lib/jenkins/puppet_helper.groovy',
-    :cli_tries       => 30,
-    :cli_try_sleep   => 2,
+    cli_jar: '/usr/lib/jenkins/jenkins-cli.jar',
+    url: 'http://localhost:8080',
+    ssh_private_key: nil,
+    puppet_helper: '/usr/lib/jenkins/puppet_helper.groovy',
+    cli_tries: 30,
+    cli_try_sleep: 2,
+    cli_username: nil,
+    cli_password: nil,
+    cli_password_file: '/tmp/jenkins_credentials_for_puppet',
+    cli_password_file_exists: false,
+    cli_remoting_free: false,
   }
   CONFIG_CLASS = 'jenkins::cli::config'
   FACT_PREFIX = 'jenkins_'

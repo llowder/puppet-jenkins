@@ -1,6 +1,6 @@
-require 'puppet_x/jenkins/type/cli'
+require_relative '../../puppet/x/jenkins/type/cli'
 
-PuppetX::Jenkins::Type::Cli.newtype(:jenkins_authorization_strategy) do
+Puppet::X::Jenkins::Type::Cli.newtype(:jenkins_authorization_strategy) do
   @doc = "Manage Jenkins' authorization strategy"
 
   ensurable
@@ -10,7 +10,7 @@ PuppetX::Jenkins::Type::Cli.newtype(:jenkins_authorization_strategy) do
     isnamevar
   end
 
-  newproperty(:arguments, :array_matching => :all) do
+  newproperty(:arguments, array_matching: :all) do
     desc 'List of arguments to security realm class constructor'
   end
 
@@ -31,4 +31,4 @@ PuppetX::Jenkins::Type::Cli.newtype(:jenkins_authorization_strategy) do
       end
     end
   end
-end # PuppetX::Jenkins::Type::Cli.newtype
+end # Puppet::X::Jenkins::Type::Cli.newtype

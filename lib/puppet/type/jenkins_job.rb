@@ -5,9 +5,9 @@ require 'puppet/util/checksums'
 require 'pathname'
 require 'tempfile'
 
-require 'puppet_x/jenkins/type/cli'
+require_relative '../../puppet/x/jenkins/type/cli'
 
-PuppetX::Jenkins::Type::Cli.newtype(:jenkins_job) do
+Puppet::X::Jenkins::Type::Cli.newtype(:jenkins_job) do
   @doc = "Manage Jenkins' jobs"
 
   ensurable
@@ -54,12 +54,12 @@ PuppetX::Jenkins::Type::Cli.newtype(:jenkins_job) do
     end
   end
 
-  newparam(:show_diff, :boolean => true, :parent => Puppet::Parameter::Boolean) do
+  newparam(:show_diff, boolean: true, parent: Puppet::Parameter::Boolean) do
     desc 'enable/disable displaying configuration diff'
     defaultto true
   end
 
-  newproperty(:enable, :boolean => true, :parent => Puppet::Property::Boolean) do
+  newproperty(:enable, boolean: true, parent: Puppet::Property::Boolean) do
     desc 'enable/disable job'
     defaultto true
   end
@@ -99,4 +99,4 @@ PuppetX::Jenkins::Type::Cli.newtype(:jenkins_job) do
       end
     end
   end
-end # PuppetX::Jenkins::Type::Cli.newtype
+end # Puppet::X::Jenkins::Type::Cli.newtype
